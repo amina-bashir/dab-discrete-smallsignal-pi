@@ -40,8 +40,6 @@ Targets of the work:
 
 ## The Exact Discrete-Time Model
 
-The full derivation is in [dab_derivations.pdf](dab_derivations.pdf), with the circuit schematic. In short:
-
 - The converter has five states: the link current i<sub>p</sub>, the input and output filter-inductor currents i<sub>Li</sub> and i<sub>Lo</sub>, and the two bus-capacitor voltages v<sub>Ci</sub> and v<sub>Co</sub>.
 - The eight switching edges of a period are sorted, which splits the period into eight intervals. In each interval both bridge voltages are constant, taken at the interval midpoint, and the circuit is linear.
 - Each interval is solved exactly with one augmented matrix exponential, which needs no matrix inverse.
@@ -75,7 +73,7 @@ The exact model was compared with a Simscape Electrical model of the same circui
 
 ## The Small-Signal Model
 
-The linearisation follows the exact switching-period small-signal model of Krismer and Kolar, taken here over one full switching period instead of one half period (derivation in [dab_derivations.pdf](dab_derivations.pdf), Section 1.2):
+The linearisation follows the exact switching-period small-signal model of Krismer and Kolar, taken here over one full switching period instead of one half period:
 
 - The one-period map is affine in the state, so its state Jacobian is exactly A<sub>d</sub> = G<sub>p</sub>; no differentiation is needed.
 - The input Jacobians B (for D1, D2, D3) and C (for the two port voltages) are central differences of the exact map about the steady state.
@@ -149,7 +147,6 @@ The loop was also run in Simulink, in Mode 1 G2V: the Simscape model of the vali
 
 | File | Purpose |
 |---|---|
-| `dab_derivations.pdf`, `dab_derivations.tex` | Circuit schematic and the derivation of the exact and small-signal models |
 | `dab_params.m` | Parameters of Table 1 and the twelve operating points of Table 2 |
 | `dab_period_map.m` | Exact one-period map: sorted edges, switching functions, augmented matrix exponential |
 | `dab_linearize.m` | Steady state, A<sub>d</sub>, B, C and G<sub>iLo,D3</sub>(z) for one operating point |
