@@ -40,47 +40,14 @@ Targets of the work:
 
 ## The Exact Discrete-Time Model
 
-The approach follows the exact switching-period small-signal model of Krismer and Kolar for a phase-shift DAB, here applied over one full switching period and to all twelve TPS modes.
+The full derivation is in [dab_derivations.pdf](dab_derivations.pdf), with the circuit schematic. In short:
 
-The converter has five states: the link current, the input and output filter-inductor currents and the two bus-capacitor voltages,
+- The converter has five states: the link current i<sub>p</sub>, the input and output filter-inductor currents i<sub>Li</sub> and i<sub>Lo</sub>, and the two bus-capacitor voltages v<sub>Ci</sub> and v<sub>Co</sub>.
+- The eight switching edges of a period are sorted, which splits the period into eight intervals. In each interval both bridge voltages are constant, taken at the interval midpoint, and the circuit is linear.
+- Each interval is solved exactly with one augmented matrix exponential, which needs no matrix inverse.
+- Chaining the eight intervals gives the exact one-period map of the converter, x<sub>k+1</sub> = G<sub>p</sub>x<sub>k</sub> + H<sub>p</sub>. The periodic steady state follows in closed form, without simulating a transient.
 
-```math
-\mathbf{x} = \begin{bmatrix} i_p & i_{Li} & i_{Lo} & v_{Ci} & v_{Co} \end{bmatrix}^T . \tag{1}
-```
-
-Between two switching edges the circuit is linear, $`\dot{\mathbf{x}} = \mathbf{A}_k\mathbf{x} + \mathbf{f}`$, with
-
-```math
-\mathbf{A}_k = \begin{bmatrix}
--\frac{R_s}{L_s} & 0 & 0 & \frac{s_1^{(k)}}{L_s} & -\frac{n s_2^{(k)}}{L_s} \\
-0 & -\frac{R_i}{L_i} & 0 & -\frac{1}{L_i} & 0 \\
-0 & 0 & -\frac{R_o}{L_o} & 0 & -\frac{1}{L_o} \\
--\frac{s_1^{(k)}}{C_i} & \frac{1}{C_i} & 0 & 0 & 0 \\
-\frac{n s_2^{(k)}}{C_o} & 0 & \frac{1}{C_o} & 0 & 0
-\end{bmatrix}, \tag{2}
-```
-
-```math
-\mathbf{f} = \begin{bmatrix} 0 & \frac{V_i}{L_i} & \frac{V_o}{L_o} & 0 & 0 \end{bmatrix}^T . \tag{3}
-```
-
-The eight edges of a period are $`\theta \in \{0,\ \phi_1,\ \pi,\ \pi+\phi_1,\ \phi_3,\ \phi_3+\phi_2,\ \pi+\phi_3,\ \pi+\phi_3+\phi_2\} \pmod{2\pi}`$ with $`\phi_i = D_i\pi`$. They are sorted, which gives the eight interval lengths $`t_k = (\theta_{k+1}-\theta_k)/\omega`$, and the bridge switching functions are evaluated at each interval midpoint $`\bar\theta_k`$:
-
-```math
-s_1^{(k)} = \tfrac{1}{2}\left[\operatorname{sgn}\sin\bar\theta_k - \operatorname{sgn}\sin(\bar\theta_k-\phi_1)\right], \tag{4}
-```
-
-```math
-s_2^{(k)} = \tfrac{1}{2}\left[\operatorname{sgn}\sin(\bar\theta_k-\phi_3) - \operatorname{sgn}\sin(\bar\theta_k-\phi_3-\phi_2)\right]. \tag{5}
-```
-
-Because the edges are sorted rather than listed per mode, the same expressions hold for every TPS mode and both power directions; a negative D3 (V2G) is placed in the period by the modulo. Over each interval the state moves as $`\mathbf{x}(t+t_k) = \mathbf{E}_k\mathbf{x}(t) + \boldsymbol{\psi}_k`$, and both blocks come from one augmented matrix exponential, which needs no inverse of $`\mathbf{A}_k`$ (singular whenever a bridge is clamped):
-
-```math
-\exp\!\left(\begin{bmatrix} \mathbf{A}_k & \mathbf{f} \\ \mathbf{0} & 0 \end{bmatrix} t_k\right) = \begin{bmatrix} \mathbf{E}_k & \boldsymbol{\psi}_k \\ \mathbf{0} & 1 \end{bmatrix}. \tag{6}
-```
-
-Chaining the eight interval maps gives the exact one-period map $`\mathbf{x}_{k+1} = \mathbf{G}_p\mathbf{x}_k + \mathbf{H}_p`$, with $`\mathbf{G}_p = \mathbf{E}_8\cdots\mathbf{E}_1`$. The periodic steady state follows in closed form, $`\mathbf{x}^\star = (\mathbf{I}-\mathbf{G}_p)^{-1}\mathbf{H}_p`$, without simulating a transient.
+Because the edges are sorted rather than listed per mode, the same construction holds for all twelve TPS modes and both power directions; a negative D3 (V2G) is placed in the period by a modulo.
 
 <p align="center"><img src="figures/fig_states.png" alt="All five states over two periods, G2V and V2G"></p>
 
@@ -108,19 +75,11 @@ The exact model was compared with a Simscape Electrical model of the same circui
 
 ## The Small-Signal Model
 
-Since the one-period map is affine in the state, its state Jacobian is the monodromy matrix itself, $`\mathbf{A}_d = \mathbf{G}_p`$, exactly. The input Jacobians $`\mathbf{B}`$ (for D1, D2, D3) and $`\mathbf{C}`$ (for V<sub>i</sub>, V<sub>o</sub>) are central differences of the exact map about $`\mathbf{x}^\star`$. In the form of Krismer and Kolar, sampled once per period instead of once per half period,
+The linearisation follows the exact switching-period small-signal model of Krismer and Kolar, taken here over one full switching period instead of one half period (derivation in [dab_derivations.pdf](dab_derivations.pdf), Section 1.2):
 
-```math
-\hat{\mathbf{x}}_{k+1} = \mathbf{A}_d\,\hat{\mathbf{x}}_k + \mathbf{B}\,\hat{\mathbf{d}}_k + \mathbf{C}\,\hat{\mathbf{v}}_{g,k} , \tag{7}
-```
-
-and the control path used for the current loop is
-
-```math
-G_{i_{Lo},D_3}(z) = \mathbf{E}_y\,(z\mathbf{I}-\mathbf{A}_d)^{-1}\,\mathbf{B}_{:,3} = \frac{\delta i_{Lo}}{\delta D_3}(z), \qquad \mathbf{E}_y = \begin{bmatrix} 0 & 0 & 1 & 0 & 0 \end{bmatrix}. \tag{8}
-```
-
-Its value at z = 1 is the DC gain K<sub>dc</sub>, the change of battery current per unit of D3 (Table 2).
+- The one-period map is affine in the state, so its state Jacobian is exactly A<sub>d</sub> = G<sub>p</sub>; no differentiation is needed.
+- The input Jacobians B (for D1, D2, D3) and C (for the two port voltages) are central differences of the exact map about the steady state.
+- The output is the battery-side current i<sub>Lo</sub>. The control path used for the current loop is the transfer function from D3 to i<sub>Lo</sub>, G<sub>iLo,D3</sub>(z), sampled once per switching period. Its value at z = 1 is the DC gain K<sub>dc</sub>, the change of battery current per unit of D3 (Table 2).
 
 | Operating point | D1 | D2 | D3 | K<sub>dc</sub> (A) | Largest Floquet multiplier | Step-test error |
 |---|---|---|---|---|---|---|
@@ -155,11 +114,7 @@ The twelve control paths have nearly the same poles, while their DC gain spans m
 
 ## PI Current Control
 
-The current is sampled once per period and a new D3 takes effect one period later, so the plant seen by the controller is
-
-```math
-G_{\mathrm{plant}}(z) = G_{i_{Lo},D_3}(z)\, z^{-N}, \qquad N = 1 . \tag{9}
-```
+The current is sampled once per period and a new D3 takes effect one period later, so the controller sees the control path with a one-period delay.
 
 A discrete PI (forward Euler) was tuned on each mode's plant divided by its own K<sub>dc</sub>, for a crossover of 300 Hz. Within each power direction, each of the six resulting gain pairs was tried on all six modes, and the pair that kept the most modes stable with the largest worst-case gain margin was kept: K<sub>p,n</sub> = 0.01445, K<sub>i,n</sub> = 1445 for both directions (from Mode 6 for G2V and Mode 4′ for V2G). Each mode then uses K<sub>p</sub> = K<sub>p,n</sub>/K<sub>dc</sub> and K<sub>i</sub> = K<sub>i,n</sub>/K<sub>dc</sub>, so the sign of the gains follows the sign of the plant.
 
@@ -194,9 +149,10 @@ The loop was also run in Simulink, in Mode 1 G2V: the Simscape model of the vali
 
 | File | Purpose |
 |---|---|
+| `dab_derivations.pdf`, `dab_derivations.tex` | Circuit schematic and the derivation of the exact and small-signal models |
 | `dab_params.m` | Parameters of Table 1 and the twelve operating points of Table 2 |
-| `dab_period_map.m` | Exact one-period map: sorted edges, switching functions, augmented matrix exponential (eqs. 1–6) |
-| `dab_linearize.m` | Steady state, A<sub>d</sub>, B, C and G<sub>iLo,D3</sub>(z) for one operating point (eqs. 7–8) |
+| `dab_period_map.m` | Exact one-period map: sorted edges, switching functions, augmented matrix exponential |
+| `dab_linearize.m` | Steady state, A<sub>d</sub>, B, C and G<sub>iLo,D3</sub>(z) for one operating point |
 | `five_state_calculator.m` | Fig. 1 |
 | `run_waveforms.m` | Fig. 2 |
 | `run_smallsignal.m` | Table 2, Figs. 4–6 |
